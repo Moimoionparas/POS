@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS Web App — HTML with Login & Discounts</title>
+  <title>POS Web App — HTML with Login, Discounts & Cash</title>
   <style>
     :root{--bg:#f7fafc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280}
     body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0;background:var(--bg);color:#111}
@@ -27,262 +27,176 @@
     .keypad button{padding:14px;font-size:18px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer}
     .discounts{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
     .cart-item.selected{background:#e0f2fe}
+    .cash-input{display:flex;gap:6px;align-items:center;margin-top:6px}
+    .self-checkout .btn.cash{display:none}
     @media (max-width:900px){.container{grid-template-columns:1fr;}.header{flex-direction:column;align-items:flex-start;gap:8px}}
   </style>
 </head>
 <body>
-  <div id="loginScreen" class="login-screen">
-    <h2>Login</h2>
-    <input id="loginId" placeholder="Employee ID" style="padding:8px;margin:6px;width:200px" />
-    <input id="loginPin" placeholder="PIN" type="password" style="padding:8px;margin:6px;width:200px" />
-    <div class="keypad" id="keypad"></div>
-    <button id="loginBtn" class="btn" style="margin-top:12px">Login</button>
-    <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+<div id="loginScreen" class="login-screen">
+<h2>Login</h2>
+<input id="loginId" placeholder="Employee ID" style="padding:8px;margin:6px;width:200px" />
+<input id="loginPin" placeholder="PIN" type="password" style="padding:8px;margin:6px;width:200px" />
+<div class="keypad" id="keypad"></div>
+<button id="loginBtn" class="btn" style="margin-top:12px">Login</button>
+<div id="loginMsg" class="muted" style="margin-top:8px"></div>
+</div>
+
+<div id="app" style="display:none">
+<div class="header container">
+  <div>
+    <h1>POS Web App</h1>
+    <div id="userRole" class="muted">Logged in as: </div>
   </div>
-
-  <div id="app" style="display:none">
-    <div class="header container">
-      <div>
-        <h1>POS Web App (HTML)</h1>
-        <div id="userRole" class="muted">Logged in as: </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="exportProducts" class="btn secondary">Export Products CSV</button>
-        <button id="exportSales" class="btn secondary">Export Sales CSV</button>
-      </div>
-    </div>
-
-    <main class="container">
-      <!-- Left: Products and Transactions -->
-      <section>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <strong>Products</strong>
-            <input id="search" placeholder="Search products or SKU" style="padding:8px;border-radius:6px;border:1px solid #e5e7eb;width:280px" />
-          </div>
-
-          <div id="products" class="products"></div>
-        </div>
-
-        <div id="transactions" class="card transactions" style="margin-top:12px">
-          <strong>Transactions</strong>
-          <div id="txList" style="margin-top:8px"></div>
-        </div>
-      </section>
-
-      <!-- Right: Cart -->
-      <aside>
-        <div class="card">
-          <strong>Cart</strong>
-          <div id="cartList" class="cart-list" style="margin-top:10px"></div>
-
-          <div class="discounts">
-            <button id="discount10" class="btn secondary">10% Off</button>
-            <button id="discount20" class="btn secondary">20% Off</button>
-            <button id="employeeDiscount" class="btn secondary">Employee 30% Off Total</button>
-          </div>
-
-          <div style="margin-top:12px;border-top:1px dashed #eee;padding-top:10px">
-            <div style="display:flex;justify-content:space-between"><div class="muted">Subtotal</div><div id="subtotal">$0.00</div></div>
-            <div style="display:flex;justify-content:space-between"><div class="muted">Tax (10%)</div><div id="tax">$0.00</div></div>
-            <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:6px"><div>Total</div><div id="total">$0.00</div></div>
-
-            <div style="margin-top:12px;display:flex;gap:8px">
-              <button id="payCash" class="btn" style="flex:1">Pay Cash</button>
-              <button id="payCard" class="btn" style="flex:1">Pay Card</button>
-            </div>
-
-            <button id="clearCart" class="btn secondary" style="width:100%;margin-top:8px">Clear Cart</button>
-          </div>
-        </div>
-
-        <div class="card" id="quickAddCard" style="margin-top:12px">
-          <strong>Quick Add</strong>
-          <div style="margin-top:8px;display:flex;gap:8px">
-            <input id="newName" placeholder="Name" style="flex:1;padding:8px;border-radius:6px;border:1px solid #e5e7eb" />
-            <input id="newPrice" placeholder="Price" type="number" style="width:90px;padding:8px;border-radius:6px;border:1px solid #e5e7eb" />
-            <button id="addProduct" class="btn secondary">Add</button>
-          </div>
-        </div>
-      </aside>
-    </main>
-
-    <footer>Works offline. Data stored locally in your browser (localStorage). Export CSV to back up.</footer>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button id="exportProducts" class="btn secondary">Export Products CSV</button>
+    <button id="exportSales" class="btn secondary">Export Sales CSV</button>
+    <button id="toggleSelfCheckout" class="btn secondary">Toggle Self-Checkout</button>
   </div>
+</div>
 
-  <script>
-    // --- Login System ---
-    const users = {
-      "1001": {pin:"522684773", role:"Manager"},
-      "1002": {pin:"05172013", role:"Employee"},
-      "1003": {pin:"11223344", role:"Employee"}
-    };
+<main class="container">
+<section>
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+<strong>Products</strong>
+<input id="search" placeholder="Search products or SKU" style="padding:8px;border-radius:6px;border:1px solid #e5e7eb;width:280px" />
+</div>
+<div id="products" class="products"></div>
+</div>
+<div id="transactions" class="card transactions" style="margin-top:12px">
+<strong>Transactions</strong>
+<div id="txList" style="margin-top:8px"></div>
+</div>
+</section>
 
-    let currentUser = null;
-    const loginScreen = document.getElementById('loginScreen');
-    const app = document.getElementById('app');
-    const loginBtn = document.getElementById('loginBtn');
-    const loginId = document.getElementById('loginId');
-    const loginPin = document.getElementById('loginPin');
-    const loginMsg = document.getElementById('loginMsg');
-    const userRoleEl = document.getElementById('userRole');
-    const keypad = document.getElementById('keypad');
+<aside>
+<div class="card" id="cartCard">
+<strong>Cart</strong>
+<div id="cartList" class="cart-list" style="margin-top:10px"></div>
+<div class="discounts">
+<button id="discount10" class="btn secondary">10% Off</button>
+<button id="discount20" class="btn secondary">20% Off</button>
+<button id="employeeDiscount" class="btn secondary">Employee 30% Off Total</button>
+</div>
+<div style="margin-top:12px;border-top:1px dashed #eee;padding-top:10px">
+<div style="display:flex;justify-content:space-between"><div class="muted">Subtotal</div><div id="subtotal">$0.00</div></div>
+<div style="display:flex;justify-content:space-between"><div class="muted">Tax</div><div id="tax">$0.00</div></div>
+<div style="display:flex;justify-content:space-between;font-weight:600;margin-top:6px"><div>Total</div><div id="total">$0.00</div></div>
+<div class="cash-input" id="cashInputDiv">
+<input type="number" id="cashReceived" placeholder="Cash Received" style="padding:6px;flex:1" />
+<button id="addBill" class="btn secondary">+Bill</button>
+<button id="subtractBill" class="btn secondary">-Bill</button>
+<div id="changeDue" style="margin-left:8px;font-weight:600">Change: $0.00</div>
+</div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button id="payCash" class="btn cash" style="flex:1">Pay Cash</button>
+<button id="payCard" class="btn" style="flex:1">Pay Card</button>
+</div>
+<button id="clearCart" class="btn secondary" style="width:100%;margin-top:8px">Clear Cart</button>
+</div>
+</aside>
+</main>
 
-    [1,2,3,4,5,6,7,8,9,0].forEach(num=>{
-      const btn=document.createElement('button');
-      btn.textContent=num;
-      btn.addEventListener('click',()=>{loginPin.value+=num});
-      keypad.appendChild(btn);
-    });
+<footer>Works offline. Data stored locally. Export CSV to back up.</footer>
 
-    loginBtn.addEventListener('click',()=>{
-      const id=loginId.value.trim();
-      const pin=loginPin.value.trim();
-      if(users[id] && users[id].pin===pin){
-        currentUser={id, role:users[id].role};
-        loginScreen.style.display='none';
-        app.style.display='block';
-        userRoleEl.textContent='Logged in as: '+currentUser.role;
-        if(currentUser.role==='Employee'){
-          document.getElementById('quickAddCard').style.display='none';
-        }
-      }else{
-        loginMsg.textContent='Invalid ID or PIN';
-      }
-    });
+<script>
+const users={"1001":{pin:"522684773",role:"Manager"},"1002":{pin:"05172013",role:"Employee"},"1003":{pin:"11223344",role:"Employee"}};
+let currentUser=null;
+const loginScreen=document.getElementById('loginScreen');
+const app=document.getElementById('app');
+const loginBtn=document.getElementById('loginBtn');
+const loginId=document.getElementById('loginId');
+const loginPin=document.getElementById('loginPin');
+const loginMsg=document.getElementById('loginMsg');
+const userRoleEl=document.getElementById('userRole');
+const keypad=document.getElementById('keypad');
+[1,2,3,4,5,6,7,8,9,0].forEach(num=>{const btn=document.createElement('button');btn.textContent=num;btn.addEventListener('click',()=>{loginPin.value+=num});keypad.appendChild(btn);});
+loginBtn.addEventListener('click',()=>{const id=loginId.value.trim();const pin=loginPin.value.trim();if(users[id]&&users[id].pin===pin){currentUser={id,role:users[id].role};loginScreen.style.display='none';app.style.display='block';userRoleEl.textContent='Logged in as: '+currentUser.role;if(currentUser.role==='Employee'){document.getElementById('quickAddCard').style.display='none';}}else{loginMsg.textContent='Invalid ID or PIN';}});
 
-    // --- Data & persistence ---
-    const defaultProducts = [
-      {id:'p1',sku:'1001',name:'Coffee',price:3,qty:50},
-      {id:'p2',sku:'1002',name:'Sandwich',price:5,qty:30},
-      {id:'p3',sku:'1003',name:'Cake',price:4,qty:20},
-      {id:'p4',sku:'1004',name:'Juice',price:2,qty:60}
-    ];
+// --- Data & persistence ---
+const defaultProducts=[{id:'p1',sku:'1001',name:'Coffee',price:3,qty:50,type:'food'},{id:'p2',sku:'1002',name:'Sandwich',price:5,qty:30,type:'food'},{id:'p3',sku:'1003',name:'Cake',price:4,qty:20,type:'food'},{id:'p4',sku:'1004',name:'Juice',price:2,qty:60,type:'other'}];
+let products=load('pos_products')||defaultProducts;
+let cart=load('pos_cart')||[];
+let sales=load('pos_sales')||[];
+let selectedCartIndex=null;
+let employeeDiscountActive=false;
+let selfCheckoutMode=false;
+const TAX_RATES={food:0.14,other:0.255};
 
-    let products = load('pos_products') || defaultProducts;
-    let cart = load('pos_cart') || [];
-    let sales = load('pos_sales') || [];
-    const TAX_RATE = parseFloat(load('pos_tax')) || 0.10;
-    let selectedCartIndex = null;
-    let employeeDiscountActive = false;
+const productsEl=document.getElementById('products');
+const cartList=document.getElementById('cartList');
+const subtotalEl=document.getElementById('subtotal');
+const taxEl=document.getElementById('tax');
+const totalEl=document.getElementById('total');
+const txList=document.getElementById('txList');
+const search=document.getElementById('search');
+const cashReceived=document.getElementById('cashReceived');
+const changeDue=document.getElementById('changeDue');
+const cashInputDiv=document.getElementById('cashInputDiv');
+const payCash=document.getElementById('payCash');
 
-    // --- Elements ---
-    const productsEl = document.getElementById('products');
-    const cartList = document.getElementById('cartList');
-    const subtotalEl = document.getElementById('subtotal');
-    const taxEl = document.getElementById('tax');
-    const totalEl = document.getElementById('total');
-    const txList = document.getElementById('txList');
-    const search = document.getElementById('search');
+function save(key,val){localStorage.setItem(key,JSON.stringify(val));}
+function load(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null}}
+function fmt(n){return '$'+Number(n).toFixed(2);}
 
-    // --- Helpers ---
-    function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-    function load(key){ try { return JSON.parse(localStorage.getItem(key)); } catch(e){return null} }
-    function fmt(n){ return '$' + Number(n).toFixed(2); }
+function renderProducts(filter=''){
+productsEl.innerHTML='';
+const q=filter.trim().toLowerCase();
+products.filter(p=>!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)).forEach(p=>{
+const el=document.createElement('div');el.className='product';
+el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(p.name)}</strong><div class='meta'>SKU ${p.sku} • ${p.qty} in stock</div></div><div style='text-align:right'><div style='font-weight:600;margin-bottom:6px'>${fmt(p.price)}</div><button data-id='${p.id}'>Add</button></div></div>`;
+el.querySelector('button').addEventListener('click',()=>addToCart(p.id,1));
+productsEl.appendChild(el);
+});
+}
 
-    // --- Render ---
-    function renderProducts(filter=''){
-      productsEl.innerHTML = '';
-      const q = filter.trim().toLowerCase();
-      const list = products.filter(p => !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
-      list.forEach(p=>{
-        const el = document.createElement('div'); el.className='product';
-        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(p.name)}</strong><div class='meta'>SKU ${p.sku} • ${p.qty} in stock</div></div><div style='text-align:right'><div style='font-weight:600;margin-bottom:6px'>${fmt(p.price)}</div><button data-id='${p.id}'>Add</button></div></div>`;
-        const btn = el.querySelector('button'); btn.addEventListener('click', ()=>{ addToCart(p.id,1) });
-        productsEl.appendChild(el);
-      });
-    }
+function renderCart(){
+cartList.innerHTML='';
+let subtotal=0;
+let totalTax=0;
+cart.forEach((c,idx)=>{
+const taxRate=TAX_RATES[c.type]||0;
+totalTax+=c.price*c.qty*taxRate;
+subtotal+=c.price*c.qty;
+const div=document.createElement('div');div.className='cart-item'+(idx===selectedCartIndex?' selected':'');
+div.innerHTML=`<div><strong>${escapeHtml(c.name)}</strong><div class='muted'>${c.qty} × ${fmt(c.price)}${c.discount?` (-${c.discount}%)`:''}</div></div><div><button data-remove='${idx}' class='btn secondary'>Remove</button></div>`;
+div.addEventListener('click',()=>{selectedCartIndex=idx;renderCart();});
+div.querySelector('button').addEventListener('click',(e)=>{e.stopPropagation();removeFromCart(idx)});
+cartList.appendChild(div);
+});
+let total=subtotal+totalTax;
+if(employeeDiscountActive) total=total*0.7;
+subtotalEl.textContent=fmt(subtotal);
+taxEl.textContent=fmt(totalTax);
+totalEl.textContent=fmt(total);
+save('pos_cart',cart);
+}
 
-    function renderCart(){
-      cartList.innerHTML = '';
-      let subtotal = 0;
-      cart.forEach((c, idx)=>{
-        subtotal += c.price * c.qty;
-        const div = document.createElement('div'); div.className='cart-item'+(idx===selectedCartIndex?' selected':'');
-        div.innerHTML = `<div><strong>${escapeHtml(c.name)}</strong><div class='muted'>${c.qty} × ${fmt(c.price)}${c.discount?` (-${c.discount}%)`:''}</div></div><div><button data-remove='${idx}' class='btn secondary'>Remove</button></div>`;
-        div.addEventListener('click',()=>{selectedCartIndex=idx;renderCart();});
-        div.querySelector('button').addEventListener('click',(e)=>{e.stopPropagation(); removeFromCart(idx)});
-        cartList.appendChild(div);
-      });
-      let tax = subtotal * TAX_RATE;
-      let total = subtotal + tax;
-      if(employeeDiscountActive){ total = total*0.7; }
-      subtotalEl.textContent = fmt(subtotal);
-      taxEl.textContent = fmt(tax);
-      totalEl.textContent = fmt(total);
-      save('pos_cart', cart);
-    }
+function addToCart(productId,qty=1){const p=products.find(x=>x.id===productId);if(!p)return alert('Product not found');if(p.qty<qty)return alert('Not enough stock');const existing=cart.find(c=>c.id===p.id);if(existing){existing.qty+=qty;}else{cart.push({id:p.id,name:p.name,price:p.price,qty,type:p.type});}p.qty-=qty;save('pos_products',products);renderProducts(search.value);renderCart();}
+function removeFromCart(idx){const item=cart[idx];const prod=products.find(p=>p.id===item.id);if(prod){prod.qty+=item.qty;}cart.splice(idx,1);save('pos_products',products);renderProducts(search.value);renderCart();}
+function clearCart(){cart.forEach(it=>{const p=products.find(x=>x.id===it.id);if(p)p.qty+=it.qty;});cart=[];save('pos_products',products);renderProducts(search.value);renderCart();employeeDiscountActive=false;}
 
-    function renderTransactions(){
-      txList.innerHTML = '';
-      if(sales.length===0){ txList.innerHTML = '<div class="muted" style="margin-top:8px">No transactions yet</div>'; return }
-      sales.forEach(s=>{
-        const d = document.createElement('div'); d.style.padding='8px 0'; d.style.borderBottom='1px solid #f1f5f9';
-        d.innerHTML = `<div style='font-weight:600'>${fmt(s.amount)}</div><div class='muted'>${s.date}</div><div class='muted'>${escapeHtml(s.items.map(i=>i.name).join(', '))}</div>`;
-        txList.appendChild(d);
-      });
-    }
+function checkout(method='Cash',cashAmount=null){if(cart.length===0)return alert('Cart is empty');let subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);let tax=cart.reduce((s,i)=>s+i.price*i.qty*TAX_RATES[i.type],0);let total=subtotal+tax;if(employeeDiscountActive)total*=0.7;const tx={id:'t'+Date.now(),items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),amount:total,date:new Date().toLocaleString(),method};sales.unshift(tx);save('pos_sales',sales);cart=[];save('pos_cart',cart);renderTransactions();renderCart();
+if(method==='Cash'&&cashAmount!==null){const change=cashAmount-total;changeDue.textContent='Change: '+fmt(change>=0?change:0);}else{changeDue.textContent='Change: $0.00';}
+alert('Payment recorded: '+fmt(total));employeeDiscountActive=false;}
 
-    // --- Cart actions ---
-    function addToCart(productId, qty=1){
-      const p = products.find(x=>x.id===productId);
-      if(!p) return alert('Product not found');
-      if(p.qty < qty) return alert('Not enough stock');
-      const existing = cart.find(c=>c.id===p.id);
-      if(existing){ existing.qty += qty; } else { cart.push({id:p.id,name:p.name,price:p.price,qty}); }
-      p.qty -= qty;
-      save('pos_products', products);
-      renderProducts(search.value);
-      renderCart();
-    }
+payCash.addEventListener('click',()=>{checkout('Cash',parseFloat(cashReceived.value));});
 
-    function removeFromCart(index){
-      const item = cart[index];
-      const prod = products.find(p=>p.id===item.id);
-      if(prod){ prod.qty += item.qty; }
-      cart.splice(index,1);
-      save('pos_products', products);
-      renderProducts(search.value);
-      renderCart();
-    }
+function applyDiscount(percent){if(selectedCartIndex===null)return alert('Select a cart item first');cart[selectedCartIndex].price=cart[selectedCartIndex].price*(1-percent/100);cart[selectedCartIndex].discount=percent;renderCart();}
+document.getElementById('discount10').addEventListener('click',()=>applyDiscount(10));
+document.getElementById('discount20').addEventListener('click',()=>applyDiscount(20));
+document.getElementById('employeeDiscount').addEventListener('click',()=>{employeeDiscountActive=true;renderCart();});
 
-    function clearCart(){
-      cart.forEach(it=>{ const p = products.find(x=>x.id===it.id); if(p) p.qty += it.qty; });
-      cart = [];
-      save('pos_products', products);
-      renderProducts(search.value);
-      renderCart();
-      employeeDiscountActive=false;
-    }
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
 
-    function checkout(method='Cash'){
-      if(cart.length===0) return alert('Cart is empty');
-      let subtotal = cart.reduce((s,i)=>s + i.price * i.qty,0);
-      let tax = subtotal * TAX_RATE;
-      let amount = subtotal + tax;
-      if(employeeDiscountActive) amount=amount*0.7;
-      const tx = { id: 't'+Date.now(), items: cart.map(i=>({name:i.name,qty:i.qty,price:i.price})), amount, date: new Date().toLocaleString(), method };
-      sales.unshift(tx);
-      save('pos_sales', sales);
-      cart = [];
-      save('pos_cart', cart);
-      renderTransactions();
-      renderCart();
-      alert('Payment recorded: ' + fmt(amount));
-      employeeDiscountActive=false;
-    }
-
-    // --- Discount functions ---
-    document.getElementById('discount10').addEventListener('click',()=>applyDiscount(10));
-    document.getElementById('discount20').addEventListener('click',()=>applyDiscount(20));
-    document.getElementById('employeeDiscount').addEventListener('click',()=>{employeeDiscountActive=true;renderCart();});
-
-    function applyDiscount(percent){
-      if(selectedCartIndex===null) return alert('Select a cart item first');
-      cart[selectedCartIndex].price = cart[selectedCartIndex].price*(1-percent/100);
-      cart[selectedCartIndex].discount = percent;
-      renderCart();
-    }
-
-    // --- Utilities ---
-    function escapeHtml(s){ return String(s).replace(/[&<>"]|'/g, function(m){
+// Self-Checkout toggle
+const toggleBtn=document.getElementById('toggleSelfCheckout');
+toggleBtn.addEventListener('click',()=>{
+selfCheckoutMode=!selfCheckoutMode;
+document.getElementById('cartCard').classList.toggle('self-checkout',selfCheckoutMode);
+cashInputDiv.style.display=selfCheckoutMode?'none':'flex';
+});
+</script>
+</body>
+</html>
