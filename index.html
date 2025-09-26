@@ -23,8 +23,8 @@
     .transactions{margin-top:14px}
     footer{max-width:1100px;margin:18px auto;text-align:center;color:var(--muted);font-size:13px}
     .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999}
-    .keypad{display:grid;grid-template-columns:repeat(3,60px);gap:8px;margin-top:12px}
-    .keypad button{padding:14px;font-size:18px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer}
+    .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:12px;margin-top:12px}
+    .keypad button{padding:20px;font-size:24px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer}
     .discounts{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
     .cart-item.selected{background:#e0f2fe}
     .cash-input{display:flex;gap:6px;align-items:center;margin-top:6px}
@@ -35,9 +35,9 @@
 <body>
 <div id="loginScreen" class="login-screen">
 <h2>Login</h2>
-<input id="loginId" placeholder="Employee ID" style="padding:8px;margin:6px;width:200px" />
-<input id="loginPin" placeholder="PIN" type="password" style="padding:8px;margin:6px;width:200px" />
-<div class="keypad" id="keypad"></div>
+<input id="loginId" placeholder="Employee ID" style="padding:12px;margin:6px;width:250px;font-size:18px" />
+<input id="loginPin" placeholder="PIN" type="password" style="padding:12px;margin:6px;width:250px;font-size:18px" />
+<div class="keypad" id="loginKeypad"></div>
 <button id="loginBtn" class="btn" style="margin-top:12px">Login</button>
 <div id="loginMsg" class="muted" style="margin-top:8px"></div>
 </div>
@@ -63,6 +63,7 @@
 <input id="search" placeholder="Search products or SKU" style="padding:8px;border-radius:6px;border:1px solid #e5e7eb;width:280px" />
 </div>
 <div id="products" class="products"></div>
+<div class="keypad" id="posKeypad" style="margin-top:12px"></div>
 </div>
 <div id="transactions" class="card transactions" style="margin-top:12px">
 <strong>Transactions</strong>
@@ -110,11 +111,37 @@ const loginId=document.getElementById('loginId');
 const loginPin=document.getElementById('loginPin');
 const loginMsg=document.getElementById('loginMsg');
 const userRoleEl=document.getElementById('userRole');
-const keypad=document.getElementById('keypad');
-[1,2,3,4,5,6,7,8,9,0].forEach(num=>{const btn=document.createElement('button');btn.textContent=num;btn.addEventListener('click',()=>{loginPin.value+=num});keypad.appendChild(btn);});
-loginBtn.addEventListener('click',()=>{const id=loginId.value.trim();const pin=loginPin.value.trim();if(users[id]&&users[id].pin===pin){currentUser={id,role:users[id].role};loginScreen.style.display='none';app.style.display='block';userRoleEl.textContent='Logged in as: '+currentUser.role;}else{loginMsg.textContent='Invalid ID or PIN';}});
+const loginKeypad=document.getElementById('loginKeypad');
+const posKeypad=document.getElementById('posKeypad');
 
-// --- Data & persistence ---
+[1,2,3,4,5,6,7,8,9,0].forEach(num=>{
+  const btn=document.createElement('button');
+  btn.textContent=num;
+  btn.addEventListener('click',()=>{loginId.value+=num;});
+  loginKeypad.appendChild(btn);
+});
+const backspaceBtn=document.createElement('button');
+backspaceBtn.textContent='←';
+backspaceBtn.addEventListener('click',()=>{loginId.value=loginId.value.slice(0,-1);});
+loginKeypad.appendChild(backspaceBtn);
+
+loginBtn.addEventListener('click',()=>{
+  const id=loginId.value.trim();
+  const pin=loginPin.value.trim();
+  if(users[id]&&users[id].pin===pin){
+    currentUser={id,role:users[id].role};
+    loginScreen.style.display='none';
+    app.style.display='block';
+    userRoleEl.textContent='Logged in as: '+currentUser.role;
+    renderProducts();
+    renderCart();
+  } else { loginMsg.textContent='Invalid ID or PIN'; }
+});
+
+function save(key,val){localStorage.setItem(key,JSON.stringify(val));}
+function load(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null}}
+function fmt(n){return '$'+Number(n).toFixed(2);}
+
 const defaultProducts=[{id:'p1',sku:'1001',name:'Coffee',price:3,qty:50,type:'food'},{id:'p2',sku:'1002',name:'Sandwich',price:5,qty:30,type:'food'},{id:'p3',sku:'1003',name:'Cake',price:4,qty:20,type:'food'},{id:'p4',sku:'1004',name:'Juice',price:2,qty:60,type:'other'}];
 let products=load('pos_products')||defaultProducts;
 let cart=load('pos_cart')||[];
@@ -136,67 +163,107 @@ const changeDue=document.getElementById('changeDue');
 const cashInputDiv=document.getElementById('cashInputDiv');
 const payCash=document.getElementById('payCash');
 
-function save(key,val){localStorage.setItem(key,JSON.stringify(val));}
-function load(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null}}
-function fmt(n){return '$'+Number(n).toFixed(2);}
-
 function renderProducts(filter=''){
-productsEl.innerHTML='';
-const q=filter.trim().toLowerCase();
-products.filter(p=>!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)).forEach(p=>{
-const el=document.createElement('div');el.className='product';
-el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(p.name)}</strong><div class='meta'>SKU ${p.sku} • ${p.qty} in stock</div></div><div style='text-align:right'><div style='font-weight:600;margin-bottom:6px'>${fmt(p.price)}</div><button data-id='${p.id}'>Add</button></div></div>`;
-el.querySelector('button').addEventListener('click',()=>addToCart(p.id,1));
-productsEl.appendChild(el);
-});
+  productsEl.innerHTML='';
+  const q=filter.trim().toLowerCase();
+  products.filter(p=>!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)).forEach(p=>{
+    const el=document.createElement('div');
+    el.className='product';
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${p.name}</strong><div class='meta'>SKU ${p.sku} • ${p.qty} in stock</div></div><div style='text-align:right'><div style='font-weight:600;margin-bottom:6px'>${fmt(p.price)}</div><button data-id='${p.id}'>Add</button></div></div>`;
+    el.querySelector('button').addEventListener('click',()=>addToCart(p.id,1));
+    productsEl.appendChild(el);
+  });
 }
 
 function renderCart(){
-cartList.innerHTML='';
-let subtotal=0;
-let totalTax=0;
-cart.forEach((c,idx)=>{
-const taxRate=TAX_RATES[c.type]||0;
-totalTax+=c.price*c.qty*taxRate;
-subtotal+=c.price*c.qty;
-const div=document.createElement('div');div.className='cart-item'+(idx===selectedCartIndex?' selected':'');
-div.innerHTML=`<div><strong>${escapeHtml(c.name)}</strong><div class='muted'>${c.qty} × ${fmt(c.price)}${c.discount?` (-${c.discount}%)`:''}</div></div><div><button data-remove='${idx}' class='btn secondary'>Remove</button></div>`;
-div.addEventListener('click',()=>{selectedCartIndex=idx;renderCart();});
-div.querySelector('button').addEventListener('click',(e)=>{e.stopPropagation();removeFromCart(idx)});
-cartList.appendChild(div);
-});
-let total=subtotal+totalTax;
-if(employeeDiscountActive) total*=0.7;
-subtotalEl.textContent=fmt(subtotal);
-taxEl.textContent=fmt(totalTax);
-totalEl.textContent=fmt(total);
-save('pos_cart',cart);
+  cartList.innerHTML='';
+  let subtotal=0;
+  let totalTax=0;
+  cart.forEach((c,idx)=>{
+    const taxRate=TAX_RATES[c.type]||0;
+    totalTax+=c.price*c.qty*taxRate;
+    subtotal+=c.price*c.qty;
+    const div=document.createElement('div');
+    div.className='cart-item'+(idx===selectedCartIndex?' selected':'');
+    div.innerHTML=`<div><strong>${c.name}</strong><div class='muted'>${c.qty} × ${fmt(c.price)}${c.discount?` (-${c.discount}%)`:''}</div></div><div><button data-remove='${idx}' class='btn secondary'>Remove</button></div>`;
+    div.addEventListener('click',()=>{selectedCartIndex=idx;renderCart();});
+    div.querySelector('button').addEventListener('click',(e)=>{e.stopPropagation();removeFromCart(idx)});
+    cartList.appendChild(div);
+  });
+  let total=subtotal+totalTax;
+  if(employeeDiscountActive) total*=0.7;
+  subtotalEl.textContent=fmt(subtotal);
+  taxEl.textContent=fmt(totalTax);
+  totalEl.textContent=fmt(total);
+  save('pos_cart',cart);
 }
 
-function addToCart(productId,qty=1){const p=products.find(x=>x.id===productId);if(!p)return alert('Product not found');if(p.qty<qty)return alert('Not enough stock');const existing=cart.find(c=>c.id===p.id);if(existing){existing.qty+=qty;}else{cart.push({id:p.id,name:p.name,price:p.price,qty,type:p.type});}p.qty-=qty;save('pos_products',products);renderProducts(search.value);renderCart();}
-function removeFromCart(idx){const item=cart[idx];const prod=products.find(p=>p.id===item.id);if(prod){prod.qty+=item.qty;}cart.splice(idx,1);save('pos_products',products);renderProducts(search.value);renderCart();}
-function clearCart(){cart.forEach(it=>{const p=products.find(x=>x.id===it.id);if(p)p.qty+=it.qty;});cart=[];save('pos_products',products);renderProducts(search.value);renderCart();employeeDiscountActive=false;changeDue.textContent='Change: $0.00';}
+function addToCart(productId,qty=1){
+  const p=products.find(x=>x.id===productId);
+  if(!p)return alert('Product not found');
+  if(p.qty<qty)return alert('Not enough stock');
+  const existing=cart.find(c=>c.id===p.id);
+  if(existing){existing.qty+=qty;}else{cart.push({id:p.id,name:p.name,price:p.price,qty,type:p.type});}
+  p.qty-=qty;
+  save('pos_products',products);
+  renderProducts(search.value);
+  renderCart();
+}
 
-function checkout(method='Cash',cashAmount=null){if(cart.length===0)return alert('Cart is empty');let subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);let tax=cart.reduce((s,i)=>s+i.price*i.qty*TAX_RATES[i.type],0);let total=subtotal+tax;if(employeeDiscountActive)total*=0.7;const tx={id:'t'+Date.now(),items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),amount:total,date:new Date().toLocaleString(),method};sales.unshift(tx);save('pos_sales',sales);cart=[];save('pos_cart',cart);renderCart();
-if(method==='Cash'&&cashAmount!==null){const change=cashAmount-total;changeDue.textContent='Change: '+fmt(change>=0?change:0);}else{changeDue.textContent='Change: $0.00';}
-alert('Payment recorded: '+fmt(total));employeeDiscountActive=false;}
+function removeFromCart(idx){
+  const item=cart[idx];
+  const prod=products.find(p=>p.id===item.id);
+  if(prod){prod.qty+=item.qty;}
+  cart.splice(idx,1);
+  save('pos_products',products);
+  renderProducts(search.value);
+  renderCart();
+}
+
+function clearCart(){
+  cart.forEach(it=>{const p=products.find(x=>x.id===it.id);if(p)p.qty+=it.qty;});
+  cart=[];
+  save('pos_products',products);
+  renderProducts(search.value);
+  renderCart();
+  employeeDiscountActive=false;
+  changeDue.textContent='Change: $0.00';
+}
+
+function checkout(method='Cash',cashAmount=null){
+  if(cart.length===0)return alert('Cart is empty');
+  let subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  let tax=cart.reduce((s,i)=>s+i.price*i.qty*TAX_RATES[i.type],0);
+  let total=subtotal+tax;
+  if(employeeDiscountActive)total*=0.7;
+  const tx={id:'t'+Date.now(),items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),amount:total,date:new Date().toLocaleString(),method};
+  sales.unshift(tx);
+  save('pos_sales',sales);
+  cart=[];
+  save('pos_cart',cart);
+  renderCart();
+  if(method==='Cash'&&cashAmount!==null){
+    const change=cashAmount-total;
+    changeDue.textContent='Change: '+fmt(change>=0?change:0);
+  } else { changeDue.textContent='Change: $0.00'; }
+  alert('Payment recorded: '+fmt(total));
+  employeeDiscountActive=false;
+}
 
 payCash.addEventListener('click',()=>{checkout('Cash',parseFloat(cashReceived.value));});
 
-function applyDiscount(percent){if(selectedCartIndex===null)return alert('Select a cart item first');cart[selectedCartIndex].price=cart[selectedCartIndex].price*(1-percent/100);cart[selectedCartIndex].discount=percent;renderCart();}
-document.getElementById('discount10').addEventListener('click',()=>applyDiscount(10));
-document.getElementById('discount20').addEventListener('click',()=>applyDiscount(20));
+document.getElementById('discount10').addEventListener('click',()=>{if(selectedCartIndex!==null){cart[selectedCartIndex].price*=0.9;cart[selectedCartIndex].discount=10;renderCart();}});
+document.getElementById('discount20').addEventListener('click',()=>{if(selectedCartIndex!==null){cart[selectedCartIndex].price*=0.8;cart[selectedCartIndex].discount=20;renderCart();}});
 document.getElementById('employeeDiscount').addEventListener('click',()=>{employeeDiscountActive=true;renderCart();});
 
-function escapeHtml(s){return String(s).replace(/[&<>\"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
-
-// Self-Checkout toggle
-const toggleBtn=document.getElementById('toggleSelfCheckout');
-toggleBtn.addEventListener('click',()=>{
-selfCheckoutMode=!selfCheckoutMode;
-document.getElementById('cartCard').classList.toggle('self-checkout',selfCheckoutMode);
-cashInputDiv.style.display=selfCheckoutMode?'none':'flex';
+document.getElementById('toggleSelfCheckout').addEventListener('click',()=>{
+  selfCheckoutMode=!selfCheckoutMode;
+  document.getElementById('cartCard').classList.toggle('self-checkout',selfCheckoutMode);
+  cashInputDiv.style.display=selfCheckoutMode?'none':'flex';
 });
+
+search.addEventListener('input',()=>renderProducts(search.value));
+
 </script>
 </body>
 </html>
