@@ -112,7 +112,7 @@ const loginMsg=document.getElementById('loginMsg');
 const userRoleEl=document.getElementById('userRole');
 const keypad=document.getElementById('keypad');
 [1,2,3,4,5,6,7,8,9,0].forEach(num=>{const btn=document.createElement('button');btn.textContent=num;btn.addEventListener('click',()=>{loginPin.value+=num});keypad.appendChild(btn);});
-loginBtn.addEventListener('click',()=>{const id=loginId.value.trim();const pin=loginPin.value.trim();if(users[id]&&users[id].pin===pin){currentUser={id,role:users[id].role};loginScreen.style.display='none';app.style.display='block';userRoleEl.textContent='Logged in as: '+currentUser.role;if(currentUser.role==='Employee'){document.getElementById('quickAddCard').style.display='none';}}else{loginMsg.textContent='Invalid ID or PIN';}});
+loginBtn.addEventListener('click',()=>{const id=loginId.value.trim();const pin=loginPin.value.trim();if(users[id]&&users[id].pin===pin){currentUser={id,role:users[id].role};loginScreen.style.display='none';app.style.display='block';userRoleEl.textContent='Logged in as: '+currentUser.role;}else{loginMsg.textContent='Invalid ID or PIN';}});
 
 // --- Data & persistence ---
 const defaultProducts=[{id:'p1',sku:'1001',name:'Coffee',price:3,qty:50,type:'food'},{id:'p2',sku:'1002',name:'Sandwich',price:5,qty:30,type:'food'},{id:'p3',sku:'1003',name:'Cake',price:4,qty:20,type:'food'},{id:'p4',sku:'1004',name:'Juice',price:2,qty:60,type:'other'}];
@@ -166,7 +166,7 @@ div.querySelector('button').addEventListener('click',(e)=>{e.stopPropagation();r
 cartList.appendChild(div);
 });
 let total=subtotal+totalTax;
-if(employeeDiscountActive) total=total*0.7;
+if(employeeDiscountActive) total*=0.7;
 subtotalEl.textContent=fmt(subtotal);
 taxEl.textContent=fmt(totalTax);
 totalEl.textContent=fmt(total);
@@ -175,9 +175,9 @@ save('pos_cart',cart);
 
 function addToCart(productId,qty=1){const p=products.find(x=>x.id===productId);if(!p)return alert('Product not found');if(p.qty<qty)return alert('Not enough stock');const existing=cart.find(c=>c.id===p.id);if(existing){existing.qty+=qty;}else{cart.push({id:p.id,name:p.name,price:p.price,qty,type:p.type});}p.qty-=qty;save('pos_products',products);renderProducts(search.value);renderCart();}
 function removeFromCart(idx){const item=cart[idx];const prod=products.find(p=>p.id===item.id);if(prod){prod.qty+=item.qty;}cart.splice(idx,1);save('pos_products',products);renderProducts(search.value);renderCart();}
-function clearCart(){cart.forEach(it=>{const p=products.find(x=>x.id===it.id);if(p)p.qty+=it.qty;});cart=[];save('pos_products',products);renderProducts(search.value);renderCart();employeeDiscountActive=false;}
+function clearCart(){cart.forEach(it=>{const p=products.find(x=>x.id===it.id);if(p)p.qty+=it.qty;});cart=[];save('pos_products',products);renderProducts(search.value);renderCart();employeeDiscountActive=false;changeDue.textContent='Change: $0.00';}
 
-function checkout(method='Cash',cashAmount=null){if(cart.length===0)return alert('Cart is empty');let subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);let tax=cart.reduce((s,i)=>s+i.price*i.qty*TAX_RATES[i.type],0);let total=subtotal+tax;if(employeeDiscountActive)total*=0.7;const tx={id:'t'+Date.now(),items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),amount:total,date:new Date().toLocaleString(),method};sales.unshift(tx);save('pos_sales',sales);cart=[];save('pos_cart',cart);renderTransactions();renderCart();
+function checkout(method='Cash',cashAmount=null){if(cart.length===0)return alert('Cart is empty');let subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);let tax=cart.reduce((s,i)=>s+i.price*i.qty*TAX_RATES[i.type],0);let total=subtotal+tax;if(employeeDiscountActive)total*=0.7;const tx={id:'t'+Date.now(),items:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),amount:total,date:new Date().toLocaleString(),method};sales.unshift(tx);save('pos_sales',sales);cart=[];save('pos_cart',cart);renderCart();
 if(method==='Cash'&&cashAmount!==null){const change=cashAmount-total;changeDue.textContent='Change: '+fmt(change>=0?change:0);}else{changeDue.textContent='Change: $0.00';}
 alert('Payment recorded: '+fmt(total));employeeDiscountActive=false;}
 
@@ -188,7 +188,7 @@ document.getElementById('discount10').addEventListener('click',()=>applyDiscount
 document.getElementById('discount20').addEventListener('click',()=>applyDiscount(20));
 document.getElementById('employeeDiscount').addEventListener('click',()=>{employeeDiscountActive=true;renderCart();});
 
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+function escapeHtml(s){return String(s).replace(/[&<>\"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
 
 // Self-Checkout toggle
 const toggleBtn=document.getElementById('toggleSelfCheckout');
