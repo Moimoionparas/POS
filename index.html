@@ -3,31 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS Web App — HTML with Login, Discounts & Cash</title>
+  <title>Advanced POS System</title>
   <style>
-    :root{--bg:#f7fafc;--card:#ffffff;--accent:#2563eb;--muted:#6b7280}
-    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0;background:var(--bg);color:#111}
-    .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;flex-direction:row;align-items:center;justify-content:center;z-index:9999;gap:40px}
+    :root{
+      --bg:#f0f4f8;
+      --card:#ffffff;
+      --accent:#0070c0;
+      --muted:#6b7280;
+      --header-bg:#005a9e;
+      --header-color:#fff;
+    }
+    body{font-family:Inter, sans-serif;margin:0;background:var(--bg);color:#111}
+    .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:40px;z-index:9999}
     .login-fields{display:flex;flex-direction:column;gap:12px;}
-    .login-fields button{padding:12px;font-size:18px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer;text-align:left}
-    .keypad{display:grid;grid-template-columns:repeat(3,80px);gap:12px}
-    .keypad button{padding:20px;font-size:24px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer}
-    .muted{color:#6b7280}
-    .container{max-width:1100px;margin:28px auto;padding:16px;display:grid;grid-template-columns:1fr 420px;gap:20px}
-    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-    .card{background:var(--card);border-radius:10px;padding:14px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
-    h1{margin:0;font-size:20px}
-    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-    .product{border:1px solid #e6edf6;border-radius:8px;padding:10px;display:flex;flex-direction:column}
-    .product .meta{font-size:13px;color:var(--muted)}
-    .product button{margin-top:10px;padding:8px;border-radius:6px;background:var(--accent);color:#fff;border:0;cursor:pointer}
-    .cart-list{max-height:300px;overflow:auto}
-    .cart-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed #eee;cursor:pointer}
-    .btn{display:inline-block;padding:8px 12px;border-radius:6px;border:0;background:#111;color:#fff;cursor:pointer}
+    .login-fields button{padding:16px;font-size:20px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer;text-align:left}
+    .keypad{display:grid;grid-template-columns:repeat(3,100px);gap:12px}
+    .keypad button{padding:24px;font-size:28px;border-radius:6px;border:1px solid #ccc;background:#f9fafb;cursor:pointer}
+    .muted{color:var(--muted)}
+    .container{max-width:1200px;margin:20px auto;padding:16px;display:grid;grid-template-columns:1fr 450px;gap:24px}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--header-bg);color:var(--header-color);border-radius:8px;margin-bottom:16px}
+    .card{background:var(--card);border-radius:10px;padding:16px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
+    h1{margin:0;font-size:24px}
+    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+    .product{border:1px solid #e6edf6;border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center}
+    .product img{width:80px;height:80px;object-fit:contain;margin-bottom:8px}
+    .product .meta{font-size:14px;color:var(--muted)}
+    .product button{margin-top:8px;padding:10px;border-radius:6px;background:var(--accent);color:#fff;border:0;cursor:pointer;width:100%}
+    .cart-list{max-height:360px;overflow:auto}
+    .cart-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed #eee;cursor:pointer}
+    .btn{display:inline-block;padding:10px 16px;border-radius:6px;border:0;background:var(--accent);color:#fff;cursor:pointer;font-size:16px}
     .btn.secondary{background:#f3f4f6;color:#111}
-    .discounts{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+    .discounts{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
     .cart-item.selected{background:#e0f2fe}
-    .cash-input{display:flex;gap:6px;align-items:center;margin-top:6px}
+    .cash-input{display:flex;gap:8px;align-items:center;margin-top:8px}
     .self-checkout .btn.cash{display:none}
   </style>
 </head>
@@ -44,19 +52,19 @@
 
 <div id="app" style="display:none">
   <div class="header container">
-    <h1>POS Web App</h1>
+    <h1>Advanced POS System</h1>
     <div id="userRole" class="muted">Logged in as: </div>
   </div>
   <main class="container">
     <section>
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <strong>Products</strong>
-          <input id="search" placeholder="Search products or SKU" style="padding:8px;border-radius:6px;border:1px solid #e5e7eb;width:280px" />
+          <input id="search" placeholder="Search products or SKU" style="padding:10px;border-radius:6px;border:1px solid #e5e7eb;width:280px;font-size:16px" />
         </div>
         <div id="products" class="products"></div>
       </div>
-      <div class="card" id="transactions" style="margin-top:12px">
+      <div class="card" id="transactions" style="margin-top:16px">
         <strong>Transactions</strong>
         <div id="txList" style="margin-top:8px"></div>
       </div>
@@ -70,21 +78,21 @@
           <button id="discount20" class="btn secondary">20% Off</button>
           <button id="employeeDiscount" class="btn secondary">Employee 30% Off Total</button>
         </div>
-        <div style="margin-top:12px;border-top:1px dashed #eee;padding-top:10px">
+        <div style="margin-top:16px;border-top:1px dashed #eee;padding-top:12px">
           <div style="display:flex;justify-content:space-between"><div class="muted">Subtotal</div><div id="subtotal">$0.00</div></div>
           <div style="display:flex;justify-content:space-between"><div class="muted">Tax</div><div id="tax">$0.00</div></div>
-          <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:6px"><div>Total</div><div id="total">$0.00</div></div>
+          <div style="display:flex;justify-content:space-between;font-weight:600;margin-top:8px"><div>Total</div><div id="total">$0.00</div></div>
           <div class="cash-input" id="cashInputDiv">
-            <input type="number" id="cashReceived" placeholder="Cash Received" style="padding:6px;flex:1" />
+            <input type="number" id="cashReceived" placeholder="Cash Received" style="padding:8px;flex:1;font-size:16px" />
             <button id="addBill" class="btn secondary">+Bill</button>
             <button id="subtractBill" class="btn secondary">-Bill</button>
-            <div id="changeDue" style="margin-left:8px;font-weight:600">Change: $0.00</div>
+            <div id="changeDue" style="margin-left:10px;font-weight:600;font-size:16px">Change: $0.00</div>
           </div>
           <div style="margin-top:12px;display:flex;gap:8px">
             <button id="payCash" class="btn cash" style="flex:1">Pay Cash</button>
             <button id="payCard" class="btn" style="flex:1">Pay Card</button>
           </div>
-          <button id="clearCart" class="btn secondary" style="width:100%;margin-top:8px">Clear Cart</button>
+          <button id="clearCart" class="btn secondary" style="width:100%;margin-top:12px">Clear Cart</button>
         </div>
       </div>
     </aside>
@@ -105,8 +113,8 @@ let enteredPin='';
 
 function setActiveField(field){
   activeField=field;
-  if(field==='id'){loginIdBtn.style.border='2px solid #2563eb'; loginPinBtn.style.border='1px solid #ccc';}
-  else if(field==='pin'){loginPinBtn.style.border='2px solid #2563eb'; loginIdBtn.style.border='1px solid #ccc';}
+  if(field==='id'){loginIdBtn.style.border='2px solid var(--accent)'; loginPinBtn.style.border='1px solid #ccc';}
+  else if(field==='pin'){loginPinBtn.style.border='2px solid var(--accent)'; loginIdBtn.style.border='1px solid #ccc';}
 }
 loginIdBtn.addEventListener('click',()=>{setActiveField('id');});
 loginPinBtn.addEventListener('click',()=>{setActiveField('pin');});
@@ -138,7 +146,7 @@ loginBtn.addEventListener('click',()=>{
     currentUser={id:enteredId,role:users[enteredId].role};
     loginScreen.style.display='none';
     document.getElementById('app').style.display='block';
-    alert('Logged in as '+currentUser.role);
+    document.getElementById('userRole').textContent='Logged in as: '+currentUser.role;
   } else {loginMsg.textContent='Invalid ID or PIN';}
 });
 loginKeypad.appendChild(loginBtn);
